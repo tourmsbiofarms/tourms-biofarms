@@ -2,11 +2,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import emailjs from '@emailjs/browser';
 
 export default function Checkout() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState([]);
   const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', city: '', note: '' });
+  const [placing, setPlacing] = useState(false);
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('tourms_cart') || '[]');
@@ -19,11 +21,12 @@ export default function Checkout() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name || !form.phone || !form.address || !form.city) {
       alert('Please fill in all required fields.');
       return;
     }
+    setPlacing(true);
     const order = {
       id: Date.now(),
       customer: form,
@@ -35,7 +38,34 @@ export default function Checkout() {
     const orders = JSON.parse(localStorage.getItem('tourms_orders') || '[]');
     orders.push(order);
     localStorage.setItem('tourms_orders', JSON.stringify(orders));
+
+    const itemsList = cartItems.map(item => `${item.name} x${item.quantity} - N${(item.price * item.quantity).toLocaleString()}`).join('\n');
+
+    try {
+      const response = await emailjs.send(
+        'service_btd72gv',
+        'template_nd8923b',
+        {
+          order_id: order.id,
+          date: order.date,
+          customer_name: form.name,
+          customer_phone: form.phone,
+          customer_email: form.email || 'N/A',
+          customer_address: form.address,
+          customer_city: form.city,
+          items: itemsList,
+          total: total.toLocaleString(),
+          note: form.note || 'None',
+        },
+        '1QtV1J7lZ26Tymmiw'
+      );
+      console.log('Email sent successfully:', response);
+    } catch (error) {
+      console.error('Email error:', error);
+    }
+
     localStorage.removeItem('tourms_cart');
+    setPlacing(false);
     router.push('/order-confirmation');
   };
 
@@ -109,9 +139,10 @@ export default function Checkout() {
             </div>
             <button
               onClick={handleSubmit}
-              style={{ width: '100%', backgroundColor: '#2d6a4f', color: 'white', border: 'none', padding: '1rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', marginTop: '1.5rem' }}
+              disabled={placing}
+              style={{ width: '100%', backgroundColor: placing ? '#999' : '#2d6a4f', color: 'white', border: 'none', padding: '1rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.1rem', cursor: placing ? 'not-allowed' : 'pointer', marginTop: '1.5rem' }}
             >
-              Place Order
+              {placing ? 'Placing Order...' : 'Place Order'}
             </button>
           </div>
         </div>
