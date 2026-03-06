@@ -41,11 +41,16 @@ export default function Checkout() {
 
     const itemsList = cartItems.map(item => `${item.name} x${item.quantity} - N${(item.price * item.quantity).toLocaleString()}`).join('\n');
 
-    try {
-      const response = await emailjs.send(
-        'service_btd72gv',
-        'template_nd8923b',
-        {
+try {
+      const itemsList = cartItems.map(item => `${item.name} x${item.quantity} - N${(item.price * item.quantity).toLocaleString()}`).join(', ');
+      
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_key: 'da242e0c-ba42-4f5e-8324-89b82ce0ac9e',
+          subject: 'New Order - Tourms Biofarms Ventures',
+          from_name: 'Tourms Biofarms Website',
           order_id: order.id,
           date: order.date,
           customer_name: form.name,
@@ -54,12 +59,12 @@ export default function Checkout() {
           customer_address: form.address,
           customer_city: form.city,
           items: itemsList,
-          total: total.toLocaleString(),
+          total: 'N' + total.toLocaleString(),
           note: form.note || 'None',
-        },
-        '1QtV1J7lZ26Tymmiw'
-      );
-      console.log('Email sent successfully:', response);
+        })
+      });
+      const result = await response.json();
+      console.log('Web3Forms result:', result);
     } catch (error) {
       console.error('Email error:', error);
     }
